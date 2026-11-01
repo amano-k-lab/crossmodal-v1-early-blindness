@@ -1,6 +1,8 @@
 # Cross-modal V1 signals in human early blindness depend on task, not stimulus — analysis code
 
-Background, repository layout, method notes and third-party code are described in [`docs/`](docs/).
+Which script implements which analysis, figure and table of the manuscript is listed in
+[`docs/overview.md`](docs/overview.md#analyses-and-code); method notes are in
+[`docs/methods.md`](docs/methods.md).
 
 ## Setup
 

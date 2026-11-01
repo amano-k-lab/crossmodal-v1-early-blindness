@@ -29,28 +29,36 @@ alternating with 15-s rest.
 * fMRIPrep 24.0.0 (MNI152NLin2009cAsym, 2 mm) and FreeSurfer.
 * mrVista/vistasoft for the phase-specified coherence (Fig. 1, Fig. S1 and the values in Data S1).
 
-## Repository layout
+## Analyses and code
 
-| Path | Manuscript item | What it does |
-|------|-----------------|--------------|
-| `config.py` | — | Paths, participants, task labels, design, ROI definitions |
-| `roi_utils.py` | — | ROI and coverage masks on any MNI152 grid |
-| `atlas/make_v1_mask.py` | STAR Methods, ROI definition | V1 mask from the Benson et al. (2014) fsaverage template |
-| `beta_estimation/run_glmsingle.py` | RSA and GLM preprocessing | GLMsingle block betas on unsmoothed fMRIPrep data |
-| `rsa/crossmodal_rsa.py` | Fig. 3, Table S4 | OBT − PS maps, tactile–auditory Pearson r per ROI |
-| `rsa/rsa_stats.py` | Fig. 3, Table S4 | Fisher-z one-sample t-tests, back-transformed means/CIs |
-| `glm_characterization/roi_effect_size.py` | Fig. S2, Table S6 | Voxel-wise Cohen's d (OBT > PS) averaged in the DCM nodes |
-| `dcm/extract_roi_timeseries.py` | Fig. 4 | Node time series (6-mm smoothing, parcel means within coverage mask) |
-| `dcm/models.py` | Fig. 4A–B | Six-node model space: input (sensory vs FEF) × FEF–V1 link (A0 vs A1) |
-| `dcm/estimate_dcm.py` | Fig. 4 | Model inversion with pydcm (SPM12 r7487 port); free energies |
-| `dcm/family_bms.py` | Fig. 4C–F, Table S5 | Variational RFX-BMS (spm_BMS) and input-family inference |
-| `coherence/coherence_stats.py` | Fig. 2, Table S3, Results | Planned contrasts, 2 × 2 mixed ANOVA, FDR on coherence values |
-| `figures/make_figures.py` | Figs. 2, 3, 4C–F, S2 | Plots from the outputs above (Figs. 2 and 3 also from Data S1) |
-| `io_utils.py` | — | Reads CSV files or a sheet of the Data S1 workbook |
-| `third_party/pydcm/` | — | pydcm (GPL-3.0) with local fixes, see [third_party.md](third_party.md) |
+Each analysis in the manuscript (STAR Methods heading in the first column) and the
+scripts that implement it, in the order they are run.
 
-Figure 1, Fig. S1 (surface coherence maps and time courses) were produced in mrVista,
-and Fig. 4A–B are schematics; these are not regenerated here.
+| Analysis (STAR Methods) | Manuscript items | Scripts |
+|---|---|---|
+| Region of interest definition (V1 for RSA/DCM) | — | `atlas/make_v1_mask.py` |
+| RSA and DCM preprocessing (GLMsingle betas) | input to Fig. 3, Fig. S2 | `beta_estimation/run_glmsingle.py` |
+| Representational similarity analysis | Fig. 3, Table S4 | `rsa/crossmodal_rsa.py` → `rsa/rsa_stats.py` |
+| Dynamic causal modeling | Fig. 4C–F, Table S5 | `dcm/extract_roi_timeseries.py` → `dcm/models.py` / `dcm/estimate_dcm.py` → `dcm/family_bms.py` |
+| Dynamic causal modeling — GLM characterization of the node set | Fig. S2, Table S6 | `glm_characterization/roi_effect_size.py` |
+| Response quantification / Quantification and statistical analysis (phase-specified coherence) | Fig. 2, Table S3, coherence statistics in the Results | `coherence/coherence_stats.py` |
+| Figures | Figs. 2, 3, 4C–F, S2 | `figures/make_figures.py` |
+
+Not regenerated here: Fig. 1 and Fig. S1 (surface coherence maps and time courses,
+produced in mrVista), the coherence values themselves (computed in mrVista; provided in
+Data S1), and the schematics in Fig. 4A–B.
+
+## Shared and third-party code
+
+| Path | Contents |
+|---|---|
+| `config.py` | Paths, participants, task labels, block design, ROI definitions (Glasser parcels) |
+| `roi_utils.py` | ROI and fMRIPrep coverage masks on any MNI152 grid |
+| `io_utils.py` | Reads CSV files or a sheet of the Data S1 workbook |
+| `third_party/pydcm/` | pydcm (GPL-3.0) with local fixes, see [third_party.md](third_party.md) |
+
+What each step computes is summarised in [methods.md](methods.md), which follows the
+same headings.
 
 ## Contact
 
