@@ -6,6 +6,7 @@ secondary/exploratory). Group means and 95% CIs are computed on z and transforme
 back to r for reporting. An exact two-sided sign test is also reported.
 
 Usage: python rsa/rsa_stats.py [--input OUTPUT_DIR/rsa/rsa_participant_values.csv]
+       python rsa/rsa_stats.py --input DataS1.xlsx --sheet <RSA sheet>
 """
 import argparse
 import sys
@@ -17,13 +18,18 @@ from scipy import stats
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config  # noqa: E402
+from io_utils import read_table  # noqa: E402
+
+# Column names used in Data S1
+COLUMN_ALIASES = {"subject_id": "participant", "pearson_r": "r"}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", default=config.OUTPUT_DIR / "rsa" / "rsa_participant_values.csv")
+    parser.add_argument("--sheet", help="sheet name when --input is an Excel workbook")
     args = parser.parse_args()
-    df = pd.read_csv(args.input)
+    df = read_table(args.input, args.sheet).rename(columns=COLUMN_ALIASES)
 
     rows = []
     for roi in config.RSA_ROIS:

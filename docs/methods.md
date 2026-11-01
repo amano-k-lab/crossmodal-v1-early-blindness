@@ -62,4 +62,5 @@ Coherence at the block frequency (1/30 Hz) was computed in mrVista following
 Masuda et al. (2021, *Curr. Biol.* 31, 406–412) using the standard vistasoft coherence
 analysis. `coherence/coherence_stats.py` computes the planned paired t-tests, the
 2 × 2 mixed ANOVA (group × task) and FDR correction from the ROI-level values in
-Data S1 (Table S3 and Results).
+Data S1 (Table S3 and Results). The manuscript reports these statistics as computed
+in MATLAB and IBM SPSS; the script implements the same tests in Python.

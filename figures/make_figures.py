@@ -3,8 +3,14 @@
 Figure 1 / S1 (surface coherence maps and time courses) were produced in mrVista
 and are not regenerated here; Figure 4A-B are schematics.
 
-Usage: python figures/make_figures.py --coherence DataS1_phase_specified_coherence.csv
-Figures whose inputs are missing are skipped.
+Usage:
+    python figures/make_figures.py
+    python figures/make_figures.py --data-s1 DataS1.xlsx \
+        --coherence-sheet <coherence sheet> --rsa-sheet <RSA sheet>
+
+Without --data-s1, Figures 3, 4C-F and S2 are drawn from the pipeline outputs in
+OUTPUT_DIR. With --data-s1, Figure 2 (and Figure 3, if --rsa-sheet is given) are
+drawn from the Data S1 workbook. Figures whose inputs are missing are skipped.
 """
 import argparse
 import sys
@@ -20,6 +26,8 @@ from scipy import stats  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config  # noqa: E402
 from coherence.coherence_stats import load as load_coherence  # noqa: E402
+from io_utils import read_table  # noqa: E402
+from rsa.rsa_stats import COLUMN_ALIASES as RSA_ALIASES  # noqa: E402
 
 COHERENCE_ROIS = {"tactile": ["S1", "V1", "V2", "V3", "hV4", "TO-1", "FEF"],
                   "auditory": ["A1/2", "V1", "V2", "V3", "hV4", "TO-1", "FEF"]}
@@ -41,8 +49,8 @@ def save(fig, name):
     print(f"saved {name}")
 
 
-def figure2(path):
-    df = load_coherence(path)
+def figure2(path, sheet=None):
+    df = load_coherence(path, sheet)
     fig, axes = plt.subplots(2, 2, figsize=(10, 6), sharey=True)
     for col, modality in enumerate(["tactile", "auditory"]):
         rois = COHERENCE_ROIS[modality]
@@ -67,8 +75,8 @@ def figure2(path):
     save(fig, "Figure2_coherence")
 
 
-def figure3(path):
-    df = pd.read_csv(path)
+def figure3(path, sheet=None):
+    df = read_table(path, sheet).rename(columns=RSA_ALIASES)
     fig, ax = plt.subplots(figsize=(4, 3.5))
     for i, roi in enumerate(config.RSA_ROIS):
         z = df.loc[df.ROI == roi, "fisher_z"].dropna().to_numpy()
@@ -127,11 +135,17 @@ def figure_s2(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--coherence", help="Data S1 phase-specified coherence (CSV)")
+    parser.add_argument("--data-s1", help="Data S1 workbook (xlsx)")
+    parser.add_argument("--coherence-sheet", help="Data S1 sheet with phase-specified coherence")
+    parser.add_argument("--rsa-sheet", help="Data S1 sheet with participant-level RSA values")
     args = parser.parse_args()
     out = config.OUTPUT_DIR
-    if args.coherence:
-        figure2(args.coherence)
+    if args.data_s1:
+        if args.coherence_sheet:
+            figure2(args.data_s1, args.coherence_sheet)
+        if args.rsa_sheet:
+            figure3(args.data_s1, args.rsa_sheet)
+        return
     for fn, path in [(figure3, out / "rsa" / "rsa_participant_values.csv"),
                      (figure4, out / "dcm" / "participant_family_gnk.csv"),
                      (figure_s2, out / "glm" / "participant_roi_cohens_d.csv")]:

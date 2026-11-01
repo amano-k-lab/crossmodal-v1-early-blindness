@@ -45,7 +45,8 @@ alternating with 15-s rest.
 | `dcm/estimate_dcm.py` | Fig. 4 | Model inversion with pydcm (SPM12 r7487 port); free energies |
 | `dcm/family_bms.py` | Fig. 4C–F, Table S5 | Variational RFX-BMS (spm_BMS) and input-family inference |
 | `coherence/coherence_stats.py` | Fig. 2, Table S3, Results | Planned contrasts, 2 × 2 mixed ANOVA, FDR on coherence values |
-| `figures/make_figures.py` | Figs. 2, 3, 4C–F, S2 | Plots from the outputs above |
+| `figures/make_figures.py` | Figs. 2, 3, 4C–F, S2 | Plots from the outputs above (Figs. 2 and 3 also from Data S1) |
+| `io_utils.py` | — | Reads CSV files or a sheet of the Data S1 workbook |
 | `third_party/pydcm/` | — | pydcm (GPL-3.0) with local fixes, see [third_party.md](third_party.md) |
 
 Figure 1, Fig. S1 (surface coherence maps and time courses) were produced in mrVista,

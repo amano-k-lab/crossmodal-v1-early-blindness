@@ -51,10 +51,33 @@ export OUTPUT_DIR=/path/to/outputs         # [./outputs]
 
 ## Running
 
+### A. From Data S1 (no imaging data needed)
+
+The group statistics and figures below start from the ROI-level values in the Data S1
+workbook that accompanies the paper. Give the workbook with `--input` and the sheet
+with `--sheet` (a CSV export of the sheet also works without `--sheet`; running a
+script without `--sheet` lists the available sheets).
+
+```bash
+# Phase-specified coherence: Table S3 and the V1 statistics in the Results
+python coherence/coherence_stats.py --input DataS1.xlsx --sheet "<coherence sheet>"
+
+# Cross-modal RSA: Table S4 (group mean r, 95% CI, t, p)
+python rsa/rsa_stats.py --input DataS1.xlsx --sheet "<RSA sheet>"
+
+# Figures 2 and 3
+python figures/make_figures.py --data-s1 DataS1.xlsx \
+    --coherence-sheet "<coherence sheet>" --rsa-sheet "<RSA sheet>"
+```
+
+Outputs are written to `OUTPUT_DIR/coherence/`, `OUTPUT_DIR/rsa/` and `OUTPUT_DIR/figures/`.
+
+### B. Full pipeline from fMRIPrep outputs
+
 Run the steps in this order from the repository root. All results are written to `OUTPUT_DIR`.
 
 ```bash
-# ROI and single-trial betas
+# V1 mask and single-trial betas
 python atlas/make_v1_mask.py
 python beta_estimation/run_glmsingle.py --n-jobs 8
 
@@ -65,16 +88,14 @@ python rsa/rsa_stats.py
 # GLM characterisation of the DCM nodes (Fig. S2, Table S6)
 python glm_characterization/roi_effect_size.py
 
-# DCM and family-level BMS (Fig. 4, Table S5)
+# DCM and family-level BMS (Fig. 4C-F, Table S5)
 python dcm/extract_roi_timeseries.py
 python dcm/estimate_dcm.py --n-jobs 32
 python dcm/family_bms.py
 
-# Phase-specified coherence statistics (Fig. 2, Table S3)
-python coherence/coherence_stats.py --input DataS1_phase_specified_coherence.csv
-
-# Figures
-python figures/make_figures.py --coherence DataS1_phase_specified_coherence.csv
+# Figures 3, 4C-F and S2
+python figures/make_figures.py
 ```
 
-`rsa/rsa_stats.py` and `coherence/coherence_stats.py` also accept the corresponding Data S1 tables via `--input`, so the group statistics can be run without the imaging data.
+The phase-specified coherence values themselves were computed in mrVista (see
+[`docs/methods.md`](docs/methods.md)); their statistics are run as in A.

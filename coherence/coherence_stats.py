@@ -1,6 +1,6 @@
 """Statistics on phase-specified coherence (Figure 2, Table S3, main-text values).
 
-Phase-specified coherence values were computed in mrVista (see README); this script
+Phase-specified coherence values were computed in mrVista (see docs/methods.md); this script
 starts from the ROI-level values provided in Data S1 (one row per participant x
 modality x condition x ROI). For each modality and ROI it reports:
 
@@ -15,7 +15,8 @@ modality x condition x ROI). For each modality and ROI it reports:
 
 It also prints the V1 one-sample tests against zero quoted in the main text.
 
-Usage: python coherence/coherence_stats.py --input DataS1_phase_specified_coherence.csv
+Usage: python coherence/coherence_stats.py --input DataS1.xlsx --sheet <coherence sheet>
+       (a CSV export of the sheet can be given instead, without --sheet)
 """
 import argparse
 import sys
@@ -28,13 +29,14 @@ from statsmodels.stats.multitest import multipletests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config  # noqa: E402
+from io_utils import read_table  # noqa: E402
 
 COLUMN_ALIASES = {"subject_id": "participant", "phase_specified_coherence": "coherence"}
 CONDITION_ALIASES = {"PV": "PS", "passive": "PS"}
 
 
-def load(path):
-    df = pd.read_csv(path).rename(columns=COLUMN_ALIASES)
+def load(path, sheet=None):
+    df = read_table(path, sheet).rename(columns=COLUMN_ALIASES)
     df["condition"] = df["condition"].replace(CONDITION_ALIASES)
     return df.pivot_table(index=["group", "modality", "ROI", "participant"],
                           columns="condition", values="coherence").dropna().reset_index()
@@ -67,9 +69,10 @@ def roi_row(blind, control):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", required=True, help="Data S1 phase-specified coherence (CSV)")
+    parser.add_argument("--input", required=True, help="Data S1 phase-specified coherence (xlsx or CSV)")
+    parser.add_argument("--sheet", help="sheet name when --input is an Excel workbook")
     args = parser.parse_args()
-    df = load(args.input)
+    df = load(args.input, args.sheet)
 
     rows = []
     for (modality, roi), sub in df.groupby(["modality", "ROI"]):

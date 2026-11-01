@@ -6,5 +6,6 @@ nibabel==5.2.1
 nilearn==0.10.4
 scikit-learn==1.4.2
 statsmodels==0.14.4
+openpyxl==3.1.5     # reading the Data S1 workbook
 matplotlib==3.10.0
-glmsingle==1.2   # https://github.com/cvnlab/GLMsingle
+glmsingle @ git+https://github.com/cvnlab/GLMsingle.git@c96337cf8b172cc7608df0782b8bdb84f930e5b9   # GLMsingle 1.2
