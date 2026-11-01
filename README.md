@@ -66,7 +66,7 @@ alternating with 15-s rest.
 
 ```bash
 python atlas/make_v1_mask.py                       # V1 mask (same for all participants)
-python beta_estimation/run_glmsingle.py            # GLMsingle betas (≈3 min per run)
+python beta_estimation/run_glmsingle.py            # GLMsingle betas
 
 python rsa/crossmodal_rsa.py                       # Figure 3 / Table S4
 python rsa/rsa_stats.py
@@ -74,7 +74,7 @@ python rsa/rsa_stats.py
 python glm_characterization/roi_effect_size.py     # Figure S2 / Table S6
 
 python dcm/extract_roi_timeseries.py               # Figure 4 / Table S5
-python dcm/estimate_dcm.py --n-jobs 32             # 192 model inversions (≈20 s each)
+python dcm/estimate_dcm.py --n-jobs 32             # 192 model inversions
 python dcm/family_bms.py
 
 python coherence/coherence_stats.py --input DataS1_phase_specified_coherence.csv  # Table S3
@@ -93,9 +93,8 @@ IOG = V4 (6/186); SOG = V3A (13/193); IPS = IPS1, MIP, LIPv, LIPd, AIP and IP2
 (both hemispheres); V1 = varea 1 of the Benson template resampled to MNI152. Only
 voxels inside the participant- and run-specific fMRIPrep functional masks are used.
 Because acquisition used partial-brain coverage, an ROI that lies entirely outside
-the acquired slab is treated as missing (for EB3, FEF was not covered in the
-auditory runs; this participant is therefore missing for the FEF RSA value and is
-excluded from the auditory DCM — see `OUTPUT_DIR/dcm/excluded.csv`).
+the acquired slab is treated as missing (participant × modality combinations
+excluded from the DCM are listed in `OUTPUT_DIR/dcm/excluded.csv`).
 
 **GLMsingle.** Unsmoothed runs are fitted one at a time; each stimulation block is a
 trial; six motion parameters are extra regressors; library-HRF betas (type B) are
