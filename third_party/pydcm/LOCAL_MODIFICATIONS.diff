@@ -1,0 +1,262 @@
+diff -ru -x __pycache__ pydcm/spm/derivate.py pydcm/spm/derivate.py
+--- pydcm/spm/derivate.py	2026-11-01 18:35:55.166683183 +0900
++++ pydcm/spm/derivate.py	2026-11-01 18:40:47.073657004 +0900
+@@ -93,7 +93,8 @@
+ 
+     # matlab cell like
+     if isinstance(args[-1], (list, tuple)) or isobjectarray(args[-1]):
+-        x = array(args[1:-2])
++        # Keep as list to handle dictionaries (P, M) properly
++        x = list(args[1:-2])
+         n = atleast_1d(array(args[-2]))
+         V = args[-1]
+         # increase list V beforehand
+@@ -103,15 +104,18 @@
+         q = 1
+     # numeric
+     elif isinstance(args[-1], (int, float)) or isnumericarray(args[-1]):
+-        x = array(args[1:-1])
++        # args[1:-1] may contain dictionaries (P, M), so keep as list instead of converting to array
++        # This is equivalent to Matlab's cell array behavior
++        x = list(args[1:-1])
+         n = atleast_1d(array(args[-1]))
+-        V = [None] * size(x)
++        V = [None] * len(x)
+         q = 1
+     # characters
+     elif isinstance(args[-1], str):
+-        x = array(args[1:-2])
++        # Keep as list to handle dictionaries (P, M) properly
++        x = list(args[1:-2])
+         n = array(args[-2])
+-        V = [None] * size(x)
++        V = [None] * len(x)
+         q = 0
+     else:
+         raise Exception('improper call')
+diff -ru -x __pycache__ pydcm/spm/estimation.py pydcm/spm/estimation.py
+--- pydcm/spm/estimation.py	2026-11-01 18:35:55.170683249 +0900
++++ pydcm/spm/estimation.py	2026-11-01 18:41:13.553563960 +0900
+@@ -1,5 +1,11 @@
+ import pydcm
+-import pydcm.models
++try:
++    import pydcm.models
++except ImportError:
++    # fall back to a relative import
++    from .. import models as pydcm_models
++    import sys
++    sys.modules['pydcm.models'] = pydcm_models
+ from ..globs import *
+ from .. import spm
+ from .. import wrappers
+@@ -279,6 +285,7 @@
+     M['pC'] = pC                               # prior covariance  (parameters)
+     M['hE'] = hE                               # prior expectation (precisions)
+     M['hC'] = hC                               # prior covariance  (precisions)
++    
+     M['m'] = U['u'].shape[1]
+     M['n'] = size(x)
+     M['l'] = x.shape[0]
+@@ -293,6 +300,7 @@
+         # nonlinear system identification (Variational EM) - deterministic DCM
+         # ----------------------------------------------------------------------
+         Ep, Cp, Eh, F, *_ = spm.nlsi_GN(M, U, Y)
++        
+ 
+         # predicted responses (y) and residuals (R)
+         # ----------------------------------------------------------------------
+@@ -356,6 +364,7 @@
+     # Save approximations to model evidence: negative free energy, AIC, BIC
+     # --------------------------------------------------------------------------
+     evidence = spm.dcm_evidence(DCM)
++    
+     DCM['F'] = F
+     DCM['ID'] = ID
+     DCM['AIC'] = evidence['aic_overall']
+@@ -423,6 +432,23 @@
+             except:
+                 lambda_i = DCM['Ce']  # Ce is the hyperparameter
+ 
++        # Ensure lambda_i is a scalar
++        if hasattr(lambda_i, '__len__') and not isinstance(lambda_i, str):
++            # Convert to scalar safely
++            if hasattr(lambda_i, 'flat'):
++                lambda_i = float(lambda_i.flat[0])
++            elif hasattr(lambda_i, '__getitem__'):
++                lambda_i = float(lambda_i[0])
++            else:
++                lambda_i = float(lambda_i)
++        elif not isinstance(lambda_i, (int, float)):
++            try:
++                lambda_i = float(lambda_i)
++            except (TypeError, ValueError):
++                # If conversion fails, try to get first element
++                if hasattr(lambda_i, '__getitem__'):
++                    lambda_i = float(lambda_i[0])
++        
+         evidence['region_cost'][i] = - 0.5 * v * log(lambda_i)  \
+                                   - 0.5 * DCM['R'][:, i].T @ ((1 / lambda_i) * eye(v)) @ DCM['R'][:, i]
+ 
+diff -ru -x __pycache__ pydcm/spm/integrate.py pydcm/spm/integrate.py
+--- pydcm/spm/integrate.py	2026-11-01 18:35:55.170683249 +0900
++++ pydcm/spm/integrate.py	2026-11-01 18:40:47.573655259 +0900
+@@ -111,8 +111,9 @@
+ 
+         # augment Jacobian and take matrix exponential
+         # ======================================================================
+-        J = spm.cat(array([[0,     None],
+-                           [t * f, t * dfdx]]))
++        # Use list instead of array to handle None values (equivalent to Matlab cell array)
++        J = spm.cat([[0,     None],
++                     [t * f, t * dfdx]])
+ 
+         # solve using matrix expectation
+         # ----------------------------------------------------------------------
+diff -ru -x __pycache__ pydcm/spm/models/sdcm.py pydcm/spm/models/sdcm.py
+--- pydcm/spm/models/sdcm.py	2026-11-01 18:35:55.170683249 +0900
++++ pydcm/spm/models/sdcm.py	2026-11-01 18:40:49.189649616 +0900
+@@ -121,6 +121,11 @@
+ 
+         # prior expectations
+         # ----------------------------------------------------------------------
++        # IMPORTANT: Save original A for pC calculation
++        # The A matrix is modified for pE calculation (diagonal removed, converted to bool)
++        # but pC calculation needs the original A matrix
++        A_original = A.copy() if not isvector(A) else A
++        
+         if isvector(A):
+             A = A.astype(bool)
+             pE['A'] = (A.ravel() - 1) * dA
+@@ -133,13 +138,14 @@
+ 
+         # prior covariances
+         # ----------------------------------------------------------------------
+-        if isvector(A):
+-            pC['A'] = A.ravel()
++        # Use original A matrix (not the modified one from pE calculation)
++        if isvector(A_original):
++            pC['A'] = A_original.ravel()
+         else:
+-            A = atleast_3d(A)
+-            pC['A'] = zeros(A.shape)
+-            for i in range(A.shape[2]):
+-                pC['A'][:, :, i] = A[:, :, i] / pA + eye(n) / pA
++            A_original_3d = atleast_3d(A_original)
++            pC['A'] = zeros(A_original_3d.shape)
++            for i in range(A_original_3d.shape[2]):
++                pC['A'][:, :, i] = A_original_3d[:, :, i] / pA + eye(n) / pA
+         pC['B'] = B
+         pC['C'] = C
+         pC['D'] = D
+diff -ru -x __pycache__ pydcm/spm/nlsi.py pydcm/spm/nlsi.py
+--- pydcm/spm/nlsi.py	2026-11-01 18:35:55.170683249 +0900
++++ pydcm/spm/nlsi.py	2026-11-01 18:41:03.489599472 +0900
+@@ -221,7 +221,11 @@
+         if isnumericarray(Q):
+             Q = [Q]  # matlab: Q = {Q}
+     except:
+-        Q = spm.Ce(ns * ones((1, nr)))  # TODO: test this
++        # spm.Ce expects integer block sizes (ny / ns can be a float)
++        nr_int = int(round(nr))
++        ns_int = int(ns)
++        v_array = np.array([ns_int] * nr_int, dtype=np.int32)
++        Q = spm.Ce(v_array)  # TODO: test this
+     nh = len(shape(Q))  # number of precision components
+     nq = int(ny / max(shape(Q[0])))  # for compact Kronecker form of M-step
+ 
+@@ -281,6 +285,8 @@
+     # --------------------------------------------------------------------------
+ 
+     V, *_ = spm.svd(pC, 0)  # matlab: spm_svd(pC, 0)
++    
++
+     nu = dfdu.shape[1]  # number of parameters (confounds)
+     nP = V.shape[1]  # number of parameters (effective)
+     ip = arange(0, nP).T
+@@ -349,7 +355,8 @@
+                 # E-Step: update
+                 # --------------------------------------------------------------
+                 p = C['p'] + spm.dx(dFdpp, dFdp, [v])
+-                Ep = spm.unvec(spm.vec(pE) + V * p[ip], pE)
++                # Use matrix multiplication (@) instead of element-wise (*) to match line 309
++                Ep = spm.unvec(spm.vec(pE) + V @ p[ip], pE)
+ 
+                 # try again
+                 # --------------------------------------------------------------
+diff -ru -x __pycache__ pydcm/spm/signal.py pydcm/spm/signal.py
+--- pydcm/spm/signal.py	2026-11-01 18:35:55.170683249 +0900
++++ pydcm/spm/signal.py	2026-11-01 18:41:03.497599443 +0900
+@@ -108,17 +108,19 @@
+ 
+     # Bilinear operator - M0
+     # --------------------------------------------------------------------------
+-    M0 = spm.cat(array([[0,               None],
+-                        [(f0 - dfdx @ x), dfdx]]))
++    # Use list instead of array to handle None values (equivalent to Matlab cell array)
++    M0 = spm.cat([[0,               None],
++                  [(f0 - dfdx @ x), dfdx]])
+ 
+     # Bilinear operator - M1 = dM0/du
+     # --------------------------------------------------------------------------
+     # M1 = full((m, 1), None)  # matlab: cell(m,1);
+     M1 = [None] * m
+     for i in range(m):
++        # Use list instead of array to handle None values (equivalent to Matlab cell array)
+         M1[i] = spm.cat(
+-            array([[0,                                 None],
+-                   [(dfdu[:, [i]] - dfdxu[i] @ x), dfdxu[i]]]))
++            [[0,                                 None],
++             [(dfdu[:, [i]] - dfdxu[i] @ x), dfdxu[i]]])
+ 
+     if nout < 3:
+         return M0, M1
+@@ -221,7 +223,9 @@
+         k = 0
+         if l > 1:
+             for i in range(l):
+-                dCda = spm.Ce(v[i], a)
++                # cast to int (v[i] can be a float)
++                v_i = int(v[i]) if not isinstance(v[i], (int, np.integer)) else v[i]
++                dCda = spm.Ce(v_i, a)
+                 for j in range(len(dCda)):
+                     x, y = nonzero(dCda[j])
+                     q = dCda[j][x, y]
+@@ -248,7 +252,9 @@
+                 C.append(Q + dQda.ravel()[0] @ A)
+             else:
+                 # matlab: speye(v,v)
+-                C.append(wrappers.eye_fn(v))
++                # cast to int (v can be a float)
++                v_int = int(v) if not isinstance(v, (int, np.integer)) else v
++                C.append(wrappers.eye_fn(v_int))
+ 
+     elif t == 'fast':
+         dt = a
+diff -ru -x __pycache__ pydcm/spm/utils.py pydcm/spm/utils.py
+--- pydcm/spm/utils.py	2026-11-01 18:35:55.170683249 +0900
++++ pydcm/spm/utils.py	2026-11-01 18:40:48.329652620 +0900
+@@ -47,15 +47,21 @@
+         [n, m] = shape(x)
+     elif isinstance(x, (list, tuple)):
+         if isinstance(x[0], (list, tuple)) and len(x[0]) > 0:
+-            pass
++            # Get shape from list structure
++            n = len(x)
++            m = len(x[0]) if n > 0 else 0
+         else:
+             x = [x]
++            n = 1
++            m = len(x[0]) if len(x) > 0 and isinstance(x[0], (list, tuple)) else len(x)
+     else:
+         return x
+ 
+     # if concatenation over a specific dimension
+     # --------------------------------------------------------------------------
+-    [n, m] = shape(x)[0:2]
++    # Only get shape from array, not from list
++    if not isinstance(x, (list, tuple)):
++        [n, m] = shape(x)[0:2]
+     if d is not None:
+ 
+         # concatenate over first dimension

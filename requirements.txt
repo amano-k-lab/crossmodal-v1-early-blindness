@@ -1,0 +1,10 @@
+# Tested with Python 3.12
+numpy==1.26.4
+scipy==1.15.2
+pandas==2.2.3
+nibabel==5.2.1
+nilearn==0.10.4
+scikit-learn==1.4.2
+statsmodels==0.14.4
+matplotlib==3.10.0
+glmsingle==1.2   # https://github.com/cvnlab/GLMsingle
