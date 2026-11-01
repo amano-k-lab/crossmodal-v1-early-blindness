@@ -2,7 +2,9 @@
 
 `third_party/pydcm` is pydcm (https://github.com/tmdemelo/pydcm, commit `1b4d7eb`),
 a Python port of SPM12 r7487 DCM, distributed under GPL-3.0 (see
-`third_party/pydcm/LICENSE`).
+`third_party/pydcm/LICENSE`). It is used for model specification and inversion; the
+random-effects BMS (`spm_BMS.m`) is not part of pydcm and is ported in
+`dcm/family_bms.py`.
 
 Local changes are listed in `third_party/pydcm/LOCAL_MODIFICATIONS.diff`:
 

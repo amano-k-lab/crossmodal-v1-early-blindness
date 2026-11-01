@@ -61,6 +61,10 @@ cross the driving input (sensory cortex vs FEF) with the absence/presence of a
 bidirectional FEF–V1 connection. The input is the stimulus-block regressor; PS and
 OBT runs are fitted separately (runs of one condition concatenated).
 
+Models are specified and inverted with pydcm (`dcm/estimate_dcm.py`). pydcm does not
+include the group-level BMS, so `dcm/family_bms.py` implements it as a direct port of
+SPM12 `spm_BMS.m`.
+
 Group inference uses variational RFX-BMS (Stephan et al., 2009) with a family prior of
 α₀ = 1 per input family (0.5 per model); participant-level family probabilities g_nk
 are summed over the A0/A1 variants, α_k = α₀ + Σₙ g_nk, and exceedance probabilities

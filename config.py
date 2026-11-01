@@ -44,7 +44,7 @@ def group_of(subject):
 # --------------------------------------------------------------------------
 # Tasks (BIDS task labels) and design
 # --------------------------------------------------------------------------
-# PS = passive sensing, OBT = one-back task. All runs were acquired with eyes closed.
+# PS = passive sensing, OBT = one-back task.
 MODALITIES = ["tactile", "auditory"]
 CONDITIONS = ["PS", "OBT"]
 TASK_LABEL = {
